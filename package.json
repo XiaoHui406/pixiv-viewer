@@ -1,0 +1,6 @@
+{
+	"dependencies": {
+		"@uni-helper/axios-adapter": "^1.5.3",
+		"axios": "^1.13.2"
+	}
+}
