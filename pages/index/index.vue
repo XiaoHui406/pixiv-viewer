@@ -19,8 +19,9 @@
 </template>
 
 <script setup lang="ts">
-	import { ref, onMounted } from 'vue'
+	import { ref, onMounted, WebViewHTMLAttributes } from 'vue'
 	import { onBackPress } from '@dcloudio/uni-app'
+	import { downloadImageToDirectory } from '@/tools/downloadImage.js'
 
 	// Pixiv网站地址
 	const pixivUrl = ref('https://www.pixiv.net/')
@@ -31,7 +32,7 @@
 
 	const webviewStyles = ref({})
 	const topBarHeight = ref(0) // 顶部栏高度
-	let webview : any = null
+	let webview : PlusWebviewWebviewObject = null
 
 	// 纯净版去广告脚本：使用原生语法，移除不兼容的伪类，改用 ES5 语法确保兼容性
 	const adFilterScript = `
@@ -142,6 +143,144 @@
 	        }
 	    })();
 	`;
+
+	// 长按图片检测 - 修复版本：添加防重复触发机制
+	const longPressScript = `
+		(function() {
+			var timer = null;
+			var touchStartTime = 0;
+			var startX = 0;
+			var startY = 0;
+			var isProcessing = false; // 添加处理状态标志，防止重复触发
+			var lastTriggerTime = 0; // 记录上次触发时间
+			var TRIGGER_DELAY = 1000; // 最小触发间隔1秒
+		
+			document.addEventListener('touchstart', function(e) {
+				// 只有单指触摸才触发
+				if (e.touches.length !== 1) return;
+					
+				var touch = e.touches[0];
+				startX = touch.clientX;
+				startY = touch.clientY;
+				touchStartTime = Date.now();
+				var target = e.target;
+	
+				// 递归查找 img 标签 (防止点击到图片上的遮罩层)
+				var depth = 0;
+				var imgTarget = null;
+				var current = target;
+				while(current && depth < 3) {
+					if (current.tagName === 'IMG') {
+						imgTarget = current;
+						break;
+					}
+					current = current.parentElement;
+					depth++;
+				}
+	
+				// 检查是否正在处理或触发间隔太短
+				var currentTime = Date.now();
+				if (imgTarget && imgTarget.src && !isProcessing && (currentTime - lastTriggerTime > TRIGGER_DELAY)) {
+					isProcessing = true; // 设置处理状态
+					timer = setTimeout(function() {
+						// 简单的防抖：如果手指移动超过10px，则不算长按
+						// 这里在setTimeout里无法获取实时位置，靠touchmove清除timer
+						
+						// 更新最后触发时间
+						lastTriggerTime = Date.now();
+						
+						// 触发自定义协议，将图片地址传给App
+						// 使用 encodeURIComponent 确保特殊字符不破坏URL结构
+						window.location.href = 'pixiv-down://action?url=' + encodeURIComponent(imgTarget.src);
+						
+						// 重置处理状态
+						isProcessing = false;
+					}, 800); // 800ms 判定为长按
+				} else if (isProcessing) {
+					console.log('正在处理中，忽略本次长按');
+				}
+			}, { passive: false });
+	
+			// 手指移动时取消长按
+			document.addEventListener('touchmove', function(e) {
+				var touch = e.touches[0];
+				// 如果移动距离超过 10px，取消长按
+				if (Math.abs(touch.clientX - startX) > 10 || Math.abs(touch.clientY - startY) > 10) {
+					clearTimeout(timer);
+					timer = null;
+					isProcessing = false; // 重置处理状态
+				}
+			}, { passive: false });
+	
+			document.addEventListener('touchend', function() {
+				clearTimeout(timer);
+				timer = null;
+				// 延迟重置处理状态，避免快速连续触发
+				setTimeout(function() {
+					isProcessing = false;
+				}, 300);
+			});
+				
+			// 屏蔽浏览器默认的长按菜单 (Context Menu)
+			document.addEventListener('contextmenu', function(e) {
+				// 如果是图片，阻止默认菜单，防止和我们的菜单冲突
+				if (e.target.tagName === 'IMG') {
+					e.preventDefault();
+				}
+			});
+		})();
+	`;
+
+	// 处理图片长按菜单 - 添加防重复调用机制
+	let isMenuShowing = false; // 菜单显示状态标志
+	const handleImageLongPress = (imageUrl : string) => {
+		console.log("handleImageLongPress");
+			
+		// 防重复调用：如果菜单已经在显示，直接返回
+		if (isMenuShowing) {
+			console.log("菜单已在显示中，忽略重复调用");
+			return;
+		}
+			
+		isMenuShowing = true; // 设置菜单显示状态
+			
+		uni.showActionSheet({
+			itemList: ['下载图片', '取消'],
+			title: '图片操作',
+			success: async (res) => {
+				if (res.tapIndex === 0) {
+					// 只有当用户点击"下载图片"时才触发
+					uni.showLoading({ title: '下载中...' });
+					try {
+						// 替换为高清图逻辑 (可选)： Pixiv略缩图通常包含 /c/600x1200_90/ 等路径，原图通常在 i.pximg.net/img-original/
+						// 这里暂时直接下载捕获到的 src
+						await downloadImageToDirectory(imageUrl);
+						uni.showToast({ title: '保存成功', icon: 'success' });
+					} catch (e : any) {
+						uni.showToast({ title: '保存失败: ' + e.message, icon: 'none' });
+					} finally {
+						uni.hideLoading();
+						// 延迟重置状态，确保动画完成
+						setTimeout(() => {
+							isMenuShowing = false;
+						}, 500);
+					}
+				} else {
+					// 用户点击取消或其他选项
+					setTimeout(() => {
+						isMenuShowing = false;
+					}, 300);
+				}
+			},
+			fail: (err) => {
+				console.log('showActionSheet fail:', err);
+				// 发生错误时也要重置状态
+				setTimeout(() => {
+					isMenuShowing = false;
+				}, 300);
+			}
+		})
+	}
 
 	// 切换菜单显示 - 使用uni.showActionSheet确保在app端可以正常显示
 	const toggleMenu = () => {
@@ -258,12 +397,51 @@
 						]);
 					}
 
+					// 核心拦截逻辑：监听 pixiv-down:// 协议
+					// overrideUrlLoading 比 overrideResourceRequest 更适合监听页面跳转请求
+					webview.overrideUrlLoading({
+						mode: 'reject', // 拦截后不进行跳转
+						match: 'pixiv-down://.*' // 只拦截特定协议
+					}, (e : any) => {
+						// e.url 就是我们在 JS 里 window.location.href 设置的值
+						// 格式: pixiv-down://action?url=https%3A%2F%2F...
+						try {
+							const rawUrl = e.url;
+							const searchKey = 'url=';
+							const index = rawUrl.indexOf(searchKey);
+
+							if (index !== -1) {
+								// 1. 截取 'url=' 后面的所有字符
+								let imgUrl = rawUrl.substring(index + searchKey.length);
+
+								// 2. 解码 (decodeURIComponent 是 JS 标准函数，APP端可用)
+								if (imgUrl) {
+									imgUrl = decodeURIComponent(imgUrl);
+
+									// 3. 再次检查是否还需要解码 (防止多重编码)
+									if (imgUrl.indexOf('%3A') > -1 || imgUrl.indexOf('%2F') > -1) {
+										imgUrl = decodeURIComponent(imgUrl);
+									}
+
+									console.log("解析成功:", imgUrl);
+
+									// 4. 调用菜单
+									handleImageLongPress(imgUrl);
+								}
+							}
+						} catch (err) {
+							console.error("解析图片地址失败:", err);
+						}
+					});
+
 					// --- 核心优化 2：注入清理脚本（隐藏 UI） ---
 					// 监听 loaded 事件确保脚本在页面跳转后依然有效
 					webview.addEventListener('loaded', () => {
 						try {
-							console.log("ad filter script loaded");
+							console.log("script loaded");
 							webview.evalJS(adFilterScript);
+							// [新增] 注入长按监听脚本
+							webview.evalJS(longPressScript);
 						} catch (e) {
 							console.error('Failed to inject ad filter:', e);
 						}
