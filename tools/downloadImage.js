@@ -24,7 +24,7 @@ export const downloadImageToDirectory = async (url) => {
 				filePath: tempFilePath,
 				success: () => {
 					console.log(tempFilePath);
-					// deleteTempFile(tempFilePath); // 清理
+					deleteTempFile(tempFilePath); // 清理
 					uni.showToast({
 						title: '已保存至相册',
 						icon: 'success'
@@ -32,7 +32,7 @@ export const downloadImageToDirectory = async (url) => {
 					resolve(tempFilePath);
 				},
 				fail: (err) => {
-					// deleteTempFile(tempFilePath);
+					deleteTempFile(tempFilePath);
 					uni.showToast({
 						title: '保存相册失败',
 						icon: 'none'
@@ -89,7 +89,8 @@ const saveToTempFile = (base64Data, originalUrl) => {
 							// 使用 plus.io.convertLocalFileSystemURL 将 _www 等路径转为真实路径
 							let absolutePath = fileEntry.fullPath;
 							if (absolutePath.startsWith('file://')) {
-								absolutePath = absolutePath.substring(7); // 去掉 file:// 前缀
+								absolutePath = absolutePath.substring(
+								7); // 去掉 file:// 前缀
 							}
 
 							const file = new NativeFile(absolutePath);

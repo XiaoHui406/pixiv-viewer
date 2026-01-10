@@ -22,9 +22,14 @@
 	import { ref, onMounted, WebViewHTMLAttributes } from 'vue'
 	import { onBackPress } from '@dcloudio/uni-app'
 	import { downloadImageToDirectory } from '@/tools/downloadImage.js'
+	import { copyIdFromCurrentUrl } from '@/tools/copyId.js'
+	import { adFilterScript } from '@/tools/adFilterScript.js'
+	import { longPressScript } from '@/tools/longPressScript.js'
+	import { urlUpdateScript } from '@/tools/urlUpdateScript.js'
 
 	// Pixiv网站地址
 	const pixivUrl = ref('https://www.pixiv.net/')
+	const currentWebviewUrl = ref('https://www.pixiv.net/');
 	// const pixivUrl = ref('https://www.bilibili.com')
 
 	// 输入框弹窗相关
@@ -34,216 +39,19 @@
 	const topBarHeight = ref(0) // 顶部栏高度
 	let webview : PlusWebviewWebviewObject = null
 
-	// 纯净版去广告脚本：使用原生语法，移除不兼容的伪类，改用 ES5 语法确保兼容性
-	const adFilterScript = `
-	    (function() {
-
-	        // 1. 安全的 CSS 注入 (处理样式层面的隐藏)
-	        function injectCSS() {
-	            var cssId = 'pixiv-ad-killer';
-	            if (document.getElementById(cssId)) return;
-
-	            var style = document.createElement('style');
-	            style.id = cssId;
-	            style.innerHTML = \`
-	                /* 强制隐藏广告链接、iframe、谷歌广告 */
-	                a[href*="ads-pixiv.net"], 
-	                a[href*="doubleclick.net"],
-					a[href*="adroll.com"],
-	                iframe,
-	                .sc-1m9m9n-0
-	                { 
-	                    display: none !important; 
-	                    width: 0 !important; 
-	                    height: 0 !important; 
-	                    visibility: hidden !important; 
-	                }
-	            \`;
-	            document.head.appendChild(style);
-	        }
-
-	        // 2. 核心逻辑：移除广告容器 (解决空白和残留图标)
-	        function removeAdContainers() {
-	            // A. 收集所有可能的广告元素
-	            var targets = [];
-
-	            // 收集可能是广告的元素
-				var adSelectors = [
-					'a[href*="doubleclick.net"]',
-					'a[href*="ads-pixiv.net"]',
-					'a[href*="adroll.com"]',
-					'div[id*="ads"]',
-					'div[class*="ad-frame"]'
-				].join(",")
-	            var links = document.querySelectorAll(adSelectors);
-	            for (var i = 0; i < links.length; i++) {
-					targets.push(links[i]);
-				}
-
-	            // 向上回溯，隐藏容器
-	            for (var i = 0; i < targets.length; i++) {
-	                var el = targets[i];
-	                // 如果元素本身已经被处理过，跳过
-	                if (el.getAttribute('data-ad-removed')) continue;
-
-	                var parent = el.parentElement;
-	                var depth = 0;
-	                var hidden = false;
-
-	                // 向上查找最多 15 层
-	                while (parent && depth < 15) {
-	                    var tagName = parent.tagName;
-
-	                    // 1. 如果是列表项 (li)，直接隐藏 (Pixiv 瀑布流广告通常在 li 中)
-	                    if (tagName === 'LI') {
-	                        parent.style.display = 'none';
-	                        el.setAttribute('data-ad-removed', 'true');
-	                        hidden = true;
-	                        break;
-	                    }
-
-	                    // 2. 如果是 section 且高度较小 (Pixiv 的很多推荐广告是 section)
-	                    if (tagName === 'SECTION' && parent.offsetHeight < 500) {
-	                        parent.style.display = 'none';
-	                        el.setAttribute('data-ad-removed', 'true');
-	                        hidden = true;
-	                        break;
-	                    }
-						
-						if (tagName === 'IFRAME' || tagName === 'DIV' || tagName === 'x-pixiv-ads-frame') {
-							parent.style.display = 'none';
-							el.setAttribute('data-ad-removed', 'true');
-							hidden = true;
-							break;
-						}
-
-	                    parent = parent.parentElement;
-	                    depth++;
-	                }
-
-	                // 兜底：如果没找到特定容器，但它是广告链接，直接隐藏它的直接父级 div
-	                if (!hidden && el.parentElement) {
-	                    el.parentElement.style.display = 'none';
-	                }
-	            }
-	        }
-
-	        // 启动
-	        try {
-	            injectCSS();
-	            removeAdContainers();
-
-	            // 使用 MutationObserver 持续清理动态加载的广告
-	            var observer = new MutationObserver(function(mutations) {
-	                removeAdContainers();
-	            });
-
-	            observer.observe(document.body, { childList: true, subtree: true });
-	        } catch (e) {
-	        }
-	    })();
-	`;
-
-	// 长按图片检测 - 修复版本：添加防重复触发机制
-	const longPressScript = `
-		(function() {
-			var timer = null;
-			var touchStartTime = 0;
-			var startX = 0;
-			var startY = 0;
-			var isProcessing = false; // 添加处理状态标志，防止重复触发
-			var lastTriggerTime = 0; // 记录上次触发时间
-			var TRIGGER_DELAY = 1000; // 最小触发间隔1秒
-		
-			document.addEventListener('touchstart', function(e) {
-				// 只有单指触摸才触发
-				if (e.touches.length !== 1) return;
-					
-				var touch = e.touches[0];
-				startX = touch.clientX;
-				startY = touch.clientY;
-				touchStartTime = Date.now();
-				var target = e.target;
-	
-				// 递归查找 img 标签 (防止点击到图片上的遮罩层)
-				var depth = 0;
-				var imgTarget = null;
-				var current = target;
-				while(current && depth < 3) {
-					if (current.tagName === 'IMG') {
-						imgTarget = current;
-						break;
-					}
-					current = current.parentElement;
-					depth++;
-				}
-	
-				// 检查是否正在处理或触发间隔太短
-				var currentTime = Date.now();
-				if (imgTarget && imgTarget.src && !isProcessing && (currentTime - lastTriggerTime > TRIGGER_DELAY)) {
-					isProcessing = true; // 设置处理状态
-					timer = setTimeout(function() {
-						// 简单的防抖：如果手指移动超过10px，则不算长按
-						// 这里在setTimeout里无法获取实时位置，靠touchmove清除timer
-						
-						// 更新最后触发时间
-						lastTriggerTime = Date.now();
-						
-						// 触发自定义协议，将图片地址传给App
-						// 使用 encodeURIComponent 确保特殊字符不破坏URL结构
-						window.location.href = 'pixiv-down://action?url=' + encodeURIComponent(imgTarget.src);
-						
-						// 重置处理状态
-						isProcessing = false;
-					}, 800); // 800ms 判定为长按
-				} else if (isProcessing) {
-					console.log('正在处理中，忽略本次长按');
-				}
-			}, { passive: false });
-	
-			// 手指移动时取消长按
-			document.addEventListener('touchmove', function(e) {
-				var touch = e.touches[0];
-				// 如果移动距离超过 10px，取消长按
-				if (Math.abs(touch.clientX - startX) > 10 || Math.abs(touch.clientY - startY) > 10) {
-					clearTimeout(timer);
-					timer = null;
-					isProcessing = false; // 重置处理状态
-				}
-			}, { passive: false });
-	
-			document.addEventListener('touchend', function() {
-				clearTimeout(timer);
-				timer = null;
-				// 延迟重置处理状态，避免快速连续触发
-				setTimeout(function() {
-					isProcessing = false;
-				}, 300);
-			});
-				
-			// 屏蔽浏览器默认的长按菜单 (Context Menu)
-			document.addEventListener('contextmenu', function(e) {
-				// 如果是图片，阻止默认菜单，防止和我们的菜单冲突
-				if (e.target.tagName === 'IMG') {
-					e.preventDefault();
-				}
-			});
-		})();
-	`;
-
 	// 处理图片长按菜单 - 添加防重复调用机制
 	let isMenuShowing = false; // 菜单显示状态标志
 	const handleImageLongPress = (imageUrl : string) => {
 		console.log("handleImageLongPress");
-			
+
 		// 防重复调用：如果菜单已经在显示，直接返回
 		if (isMenuShowing) {
 			console.log("菜单已在显示中，忽略重复调用");
 			return;
 		}
-			
+
 		isMenuShowing = true; // 设置菜单显示状态
-			
+
 		uni.showActionSheet({
 			itemList: ['下载图片', '取消'],
 			title: '图片操作',
@@ -282,17 +90,64 @@
 		})
 	}
 
+	// 检查当前URL是否可以复制ID
+	const canCopyId = (url : string) => {
+		if (!url) return false;
+
+		// 检查是否为作品页面
+		if (url.includes('/artworks/')) {
+			return true;
+		}
+
+		// 检查是否为画师页面
+		if (url.includes('/users/')) {
+			return true;
+		}
+
+		// 检查其他可能的URL格式
+		if (url.includes('illust_id=') || url.includes('member.php?id=')) {
+			return true;
+		}
+
+		return false;
+	}
+
 	// 切换菜单显示 - 使用uni.showActionSheet确保在app端可以正常显示
 	const toggleMenu = () => {
+		// 根据当前URL决定菜单选项
+		const menuItems = [];
+		const menuActions = [];
+		let webviewUrl : string = currentWebviewUrl.value
+		console.log('webviewUrl=' + webviewUrl);
+
+		// 检查是否可以复制ID
+		if (canCopyId(webviewUrl)) {
+			menuItems.push('复制ID');
+			menuActions.push('copyId');
+		}
+
+		// 添加原有的查找功能
+		menuItems.push('查找作品', '查找画师');
+		menuActions.push('findArtwork', 'findUser');
+
 		uni.showActionSheet({
-			itemList: ['查找作品', '查找画师'],
-			success: (res) => {
-				if (res.tapIndex === 0) {
-					// 查找作品
-					showArtworkInput()
-				} else if (res.tapIndex === 1) {
-					// 查找画师
-					showUserInput()
+			itemList: menuItems,
+			success: async (res) => {
+				const action = menuActions[res.tapIndex];
+
+				switch (action) {
+					case 'copyId':
+						// 复制当前页面的ID
+						await copyIdFromCurrentUrl(webviewUrl);
+						break;
+					case 'findArtwork':
+						// 查找作品
+						showArtworkInput();
+						break;
+					case 'findUser':
+						// 查找画师
+						showUserInput();
+						break;
 				}
 			},
 			fail: (err) => {
@@ -385,6 +240,7 @@
 					        style.innerHTML = 'a[href*="ads-pixiv.net"] { display: none !important; }';
 					        document.head.appendChild(style);
 					    `);
+						console.log('webview is loading');
 					});
 
 					if (webview.overrideResourceRequest) {
@@ -403,6 +259,18 @@
 						mode: 'reject', // 拦截后不进行跳转
 						match: 'pixiv-down://.*' // 只拦截特定协议
 					}, (e : any) => {
+						const rawUrl = e.url;
+						if (rawUrl.includes('pixiv-down://update-url')) {
+							const urlParam = 'url=';
+							const index = rawUrl.indexOf(urlParam);
+							if (index !== -1) {
+								const newUrl = decodeURIComponent(rawUrl.substring(index + urlParam.length));
+								currentWebviewUrl.value = newUrl;
+								console.log("App 已同步最新 URL:", newUrl);
+							}
+							return; // 拦截并结束，不执行后续逻辑
+						}
+
 						// e.url 就是我们在 JS 里 window.location.href 设置的值
 						// 格式: pixiv-down://action?url=https%3A%2F%2F...
 						try {
@@ -442,6 +310,7 @@
 							webview.evalJS(adFilterScript);
 							// [新增] 注入长按监听脚本
 							webview.evalJS(longPressScript);
+							webview.evalJS(urlUpdateScript);
 						} catch (e) {
 							console.error('Failed to inject ad filter:', e);
 						}
