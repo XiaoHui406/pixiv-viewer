@@ -9,12 +9,15 @@
 - 📱 适配 Android 状态栏，确保界面不被遮挡
 - ⬅️ 支持 WebView 页面回退功能，不会意外退出应用
 - 🎨 简洁的顶部工具栏设计
+- 🛡️ **广告拦截功能** - 自动屏蔽Pixiv网站广告
+- 💾 **图片下载功能** - 长按图片保存到相册
+- 📋 **ID复制功能** - 一键复制作品ID或画师ID
 
 ## 技术栈
 
 - **框架**: uniapp
 - **前端**: Vue 3 (Composition API)
-- **语言**: TypeScript
+- **语言**: TypeScript / JavaScript
 - **平台**: Android (app-plus)
 
 ## 主要功能
@@ -33,6 +36,24 @@
 - 支持 Android 返回键回退到上一页
 - 当无法回退时自动退出应用
 
+### 4. 广告拦截（1.1版本新增）
+- 自动屏蔽Pixiv网站广告
+- CSS注入隐藏广告元素
+- MutationObserver动态清理新加载的广告
+- 资源请求拦截器阻止广告加载
+
+### 5. 图片下载（1.2版本新增）
+- 长按图片弹出下载菜单
+- 支持保存图片到手机相册
+- 防重复触发机制，避免频繁弹出菜单
+- 支持多种图片格式下载
+
+### 6. ID复制功能（1.3版本新增）
+- 在作品页面或画师页面点击右上角菜单
+- 一键复制作品ID或画师ID
+- 支持新版和旧版URL格式识别
+- 智能提取URL中的ID信息
+
 ## 项目结构
 
 ```
@@ -40,9 +61,16 @@ PixivViewer/
 ├── pages/
 │   └── index/
 │       └── index.vue      # 主页面
+├── tools/                 # 工具脚本
+│   ├── adFilterScript.js     # 广告拦截脚本
+│   ├── copyId.js             # ID复制功能脚本
+│   ├── downloadImage.js      # 图片下载功能脚本
+│   ├── longPressScript.js    # 长按图片检测脚本
+│   ├── urlUpdateScript.js    # URL更新检测脚本
+│   └── request.js            # 网络请求工具
 ├── static/                # 静态资源
-│   ├── logo.png
-│   └── more.png
+│   ├── icon.png          # 应用图标
+│   └── more.png          # 菜单图标
 ├── App.vue                # 应用入口
 ├── main.js                # 主入口文件
 ├── manifest.json          # 应用配置
@@ -54,7 +82,7 @@ PixivViewer/
 ### 环境要求
 
 - HBuilderX 或 uniapp 开发环境
-- Node.js (如果使用 npm 包管理)
+- Node.js
 
 ### 运行项目
 
