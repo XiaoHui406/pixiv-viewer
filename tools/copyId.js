@@ -35,8 +35,8 @@ export function extractIdFromUrl(url) {
 
 		// 检查其他可能的URL格式
 		// 例如：/member_illust.php?mode=medium&illust_id=139731500
-		if (urlStr.includes('member_illust.php')) {
-			const illustIdMatch = urlStr.match(/[?&]illust_id=(\d+)/);
+		if (url.includes('member_illust.php')) {
+			const illustIdMatch = url.match(/[?&]illust_id=(\d+)/);
 			if (illustIdMatch) {
 				return {
 					type: 'artwork',
@@ -46,8 +46,8 @@ export function extractIdFromUrl(url) {
 		}
 
 		// 例如：/member.php?id=3388329
-		if (urlStr.includes('member.php')) {
-			const userIdMatch = urlStr.match(/[?&]id=(\d+)/);
+		if (url.includes('member.php')) {
+			const userIdMatch = url.match(/[?&]id=(\d+)/);
 			if (userIdMatch) {
 				return {
 					type: 'user',

@@ -130,6 +130,10 @@
 		menuItems.push('查找作品', '查找画师');
 		menuActions.push('findArtwork', 'findUser');
 
+		// 添加以图搜图功能
+		menuItems.push('以图搜图');
+		menuActions.push('searchByImage');
+
 		uni.showActionSheet({
 			itemList: menuItems,
 			success: async (res) => {
@@ -147,6 +151,10 @@
 					case 'findUser':
 						// 查找画师
 						showUserInput();
+						break;
+					case 'searchByImage':
+						// 以图搜图
+						searchByImage();
 						break;
 				}
 			},
@@ -194,6 +202,12 @@
 				}
 			}
 		})
+	}
+
+	// 以图搜图功能
+	const searchByImage = () => {
+		// 跳转到ascii2d.net网站
+		pixivUrl.value = 'https://ascii2d.net/'
 	}
 
 	onMounted(() => {
