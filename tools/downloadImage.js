@@ -2,49 +2,63 @@ import request from '@/tools/request.js'
 
 /**
  * 下载并保存图片到相册 (最终修复版)
+ * 使用原生下载器下载图片 (支持 Referer 且节省内存)
  */
-export const downloadImageToDirectory = async (url) => {
-	try {
-		console.log('开始处理图片:', url);
+export const downloadImageToDirectory = (url) => {
+	return new Promise((resolve, reject) => {
+		console.log('开始原生下载:', url);
 
-		// 1. 获取图片二进制数据
-		const response = await request.get(url, {
-			responseType: 'arraybuffer',
+		// 1. 创建下载任务
+		const downloadTask = plus.downloader.createDownload(url, {
+			// 指定下载路径，_doc/ 为应用私有文档目录
+			filename: '_doc/download/' + Date.now() + '.jpg'
+		}, (download, status) => {
+			// 下载完成回调
+			if (status == 200) {
+				console.log('文件下载成功:', download.filename);
+
+				// 2. 将下载完成的临时文件保存到系统相册
+				uni.saveImageToPhotosAlbum({
+					filePath: download.filename,
+					success: () => {
+						uni.showToast({
+							title: '已保存至相册',
+							icon: 'success'
+						});
+						// 3. 清理临时文件（可选）
+						plus.io.resolveLocalFileSystemURL(download.filename, (
+						entry) => {
+							entry.remove();
+						});
+						resolve(download.filename);
+					},
+					fail: (err) => {
+						uni.showToast({
+							title: '保存相册失败',
+							icon: 'none'
+						});
+						reject(err);
+					}
+				});
+			} else {
+				console.error('下载失败状态码:', status);
+				uni.showToast({
+					title: '下载失败',
+					icon: 'none'
+				});
+				reject(new Error('Download failed'));
+			}
 		});
 
-		// 2. 转为 Base64
-		const base64Data = uni.arrayBufferToBase64(response.data);
+		// 4. 设置关键 Header
+		downloadTask.setRequestHeader('Referer', 'https://www.pixiv.net/');
+		downloadTask.setRequestHeader('User-Agent',
+			'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+			);
 
-		// 3. 写入临时文件
-		const tempFilePath = await saveToTempFile(base64Data, url);
-
-		// 4. 保存到相册
-		return new Promise((resolve, reject) => {
-			uni.saveImageToPhotosAlbum({
-				filePath: tempFilePath,
-				success: () => {
-					console.log(tempFilePath);
-					deleteTempFile(tempFilePath); // 清理
-					uni.showToast({
-						title: '已保存至相册',
-						icon: 'success'
-					});
-					resolve(tempFilePath);
-				},
-				fail: (err) => {
-					deleteTempFile(tempFilePath);
-					uni.showToast({
-						title: '保存相册失败',
-						icon: 'none'
-					});
-					reject(err);
-				}
-			});
-		});
-	} catch (error) {
-		console.error('下载失败:', error);
-		throw error;
-	}
+		// 5. 启动任务
+		downloadTask.start();
+	});
 };
 
 /**
@@ -90,7 +104,7 @@ const saveToTempFile = (base64Data, originalUrl) => {
 							let absolutePath = fileEntry.fullPath;
 							if (absolutePath.startsWith('file://')) {
 								absolutePath = absolutePath.substring(
-								7); // 去掉 file:// 前缀
+									7); // 去掉 file:// 前缀
 							}
 
 							const file = new NativeFile(absolutePath);
