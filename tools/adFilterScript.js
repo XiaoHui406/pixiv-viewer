@@ -14,8 +14,12 @@ export const adFilterScript = `
 	                a[href*="ads-pixiv.net"], 
 	                a[href*="doubleclick.net"],
 					a[href*="adroll.com"],
+					div[class*="ad-frame"],
+					div[class*="banner-ad"],
 	                iframe:not([src*="recaptcha"]):not([title*="reCAPTCHA"]),
-	                .sc-1m9m9n-0
+					div[id*="adsdk--"],
+	                .sc-1m9m9n-0,
+					.ads
 	                { 
 	                    display: none !important; 
 	                    width: 0 !important; 
@@ -37,7 +41,10 @@ export const adFilterScript = `
 					'a[href*="ads-pixiv.net"]',
 					'a[href*="adroll.com"]',
 					'div[id*="ads"]',
-					'div[class*="ad-frame"]'
+					'div[class*="ad-frame"]',
+					'div[class*="premium-icon"]',
+					'div[class*="pixiv-premium"]',
+					'div[id*="adsdk--"]'
 				].join(",")
 	            var links = document.querySelectorAll(adSelectors);
 	            for (var i = 0; i < links.length; i++) {
