@@ -259,7 +259,7 @@
 	}
 
 	// 通用的webview API加载URL函数
-	const loadUrlWithWebviewAPI = async (url: string) => {
+	const loadUrlWithWebviewAPI = async (url : string) => {
 		console.log('loadUrlWithWebviewAPI called with URL:', url)
 
 		try {

@@ -14,7 +14,7 @@ export const adFilterScript = `
 	                a[href*="ads-pixiv.net"], 
 	                a[href*="doubleclick.net"],
 					a[href*="adroll.com"],
-	                iframe,
+	                iframe:not([src*="recaptcha"]):not([title*="reCAPTCHA"]),
 	                .sc-1m9m9n-0
 	                { 
 	                    display: none !important; 
@@ -75,6 +75,18 @@ export const adFilterScript = `
 	                    }
 						
 						if (tagName === 'IFRAME' || tagName === 'DIV' || tagName === 'x-pixiv-ads-frame') {
+							// 如果是 reCAPTCHA 的 iframe，不要隐藏
+							    if (tagName === 'IFRAME') {
+							        var src = parent.getAttribute('src') || '';
+							        var title = parent.getAttribute('title') || '';
+							        if (src.indexOf('recaptcha') !== -1 || title.indexOf('reCAPTCHA') !== -1) {
+							            // 这是验证码，跳过，继续向父级查找或停止
+							            parent = parent.parentElement;
+							            depth++;
+							            continue; 
+							        }
+							    }
+							
 							parent.style.display = 'none';
 							el.setAttribute('data-ad-removed', 'true');
 							hidden = true;
