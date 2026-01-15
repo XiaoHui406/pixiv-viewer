@@ -382,7 +382,7 @@
 		uni.getSystemInfo({
 			success: (sysinfo) => {
 				// 计算顶部栏总高度（状态栏高度 + 工具栏高度，工具栏约44px）
-				const toolbarHeight = 44
+				const toolbarHeight = 30
 				const totalTop = (sysinfo.statusBarHeight || 0) + toolbarHeight
 				topBarHeight.value = totalTop
 
@@ -563,7 +563,7 @@
 	}
 
 	.toolbar {
-		height: 44px;
+		height: 30px;
 		width: 100%;
 		display: flex;
 		align-items: center;
@@ -580,7 +580,7 @@
 
 	.menu-icon {
 		width: 32px;
-		height: 44px;
+		height: 100%;
 		display: flex;
 		align-items: center;
 		justify-content: center;
