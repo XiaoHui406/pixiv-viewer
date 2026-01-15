@@ -1,5 +1,3 @@
-import request from '@/tools/request.js'
-
 /**
  * 下载并保存图片到相册 (最终修复版)
  * 使用原生下载器下载图片 (支持 Referer 且节省内存)
@@ -27,7 +25,7 @@ export const downloadImageToDirectory = (url) => {
 						});
 						// 3. 清理临时文件（可选）
 						plus.io.resolveLocalFileSystemURL(download.filename, (
-						entry) => {
+							entry) => {
 							entry.remove();
 						});
 						resolve(download.filename);
@@ -54,7 +52,7 @@ export const downloadImageToDirectory = (url) => {
 		downloadTask.setRequestHeader('Referer', 'https://www.pixiv.net/');
 		downloadTask.setRequestHeader('User-Agent',
 			'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-			);
+		);
 
 		// 5. 启动任务
 		downloadTask.start();
