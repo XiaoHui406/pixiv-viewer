@@ -483,10 +483,12 @@
 					webview.addEventListener('loaded', () => {
 						try {
 							console.log("script loaded");
-							webview.evalJS(adFilterScript);
-							// [新增] 注入长按监听脚本
-							webview.evalJS(longPressScript);
-							webview.evalJS(urlUpdateScript);
+							const combinedScript = [
+								adFilterScript,
+								longPressScript,
+								urlUpdateScript
+							].join("")
+							webview.evalJS(combinedScript)
 						} catch (e) {
 							console.error('Failed to inject ad filter:', e);
 						}
