@@ -23,9 +23,10 @@
 	import { onBackPress } from '@dcloudio/uni-app'
 	import { downloadImageToDirectory } from '@/tools/downloadImage.js'
 	import { copyIdFromCurrentUrl } from '@/tools/copyId.js'
-	import { adFilterScript } from '@/tools/adFilterScript.js'
+	import { generateAdFilterScript } from '@/tools/adFilterScript.ts'
 	import { longPressScript } from '@/tools/longPressScript.js'
 	import { urlUpdateScript } from '@/tools/urlUpdateScript.js'
+	import { STORAGE_KEY, AdBlockSettings } from '@/types/adblock.ts'
 
 	// Pixiv网站地址
 	const pixivUrl = ref('https://www.pixiv.net/')
@@ -119,7 +120,6 @@
 	}
 
 	const toSettings = () => {
-		console.log("navigate");
 		uni.navigateTo({
 			url: "/pages/settings/settings"
 		})
@@ -421,27 +421,6 @@
 						blockNetworkJS: false
 					});
 
-					// 增加对 loading 状态的监听，提前注入 CSS
-					webview.addEventListener('loading', () => {
-						// 在加载初期就注入最基础的隐藏样式，防止广告位撑开
-						webview.evalJS(`
-					        var style = document.createElement('style');
-					        style.innerHTML = 'a[href*="ads-pixiv.net"] { display: none !important; }';
-					        document.head.appendChild(style);
-					    `);
-						console.log('webview is loading');
-					});
-
-					if (webview.overrideResourceRequest) {
-						webview.overrideResourceRequest([
-							// 只拦截明确的广告域名
-							{ match: 'https?://.*\\.ads-pixiv\\.net/.*', redirect: ' ' },
-							{ match: 'https?://.*doubleclick\\.net/.*', redirect: ' ' },
-							{ match: 'https?://.*googleadservices\\.com/.*', redirect: ' ' },
-							// 避免拦截source.pixiv.net，这可能是图片资源
-						]);
-					}
-
 					// 核心拦截逻辑：监听 pixiv-down:// 协议
 					// overrideUrlLoading 比 overrideResourceRequest 更适合监听页面跳转请求
 					webview.overrideUrlLoading({
@@ -496,7 +475,10 @@
 					webview.addEventListener('loaded', () => {
 						try {
 							console.log("script loaded");
-							const combinedScript = [
+							const settings : AdBlockSettings = uni.getStorageSync(STORAGE_KEY)
+							const adFilterScript : string = generateAdFilterScript(settings)
+
+							const combinedScript : string = [
 								adFilterScript,
 								longPressScript,
 								urlUpdateScript
@@ -507,13 +489,6 @@
 						}
 					});
 
-					// 确保webview不拦截顶部区域的触摸事件
-					// @ts-ignore
-					if (typeof plus !== 'undefined' && webview.setTouchEvent) {
-						// 设置webview的触摸事件处理，但顶部区域应该由原生view处理
-					}
-					// 关闭启动加载菊花
-					// @ts-ignore
 					if (typeof plus !== 'undefined' && plus.navigator) {
 						// @ts-ignore
 						setTimeout(function () { plus.navigator.closeSplashscreen() }, 600)
