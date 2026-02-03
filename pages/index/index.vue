@@ -118,6 +118,13 @@
 		return false;
 	}
 
+	const toSettings = () => {
+		console.log("navigate");
+		uni.navigateTo({
+			url: "/pages/settings/settings"
+		})
+	}
+
 	// 切换菜单显示 - 使用uni.showActionSheet确保在app端可以正常显示
 	const toggleMenu = () => {
 		// 根据当前URL决定菜单选项
@@ -140,6 +147,9 @@
 		menuItems.push('以图搜图');
 		menuActions.push('searchByImage');
 
+		menuItems.push("设置")
+		menuActions.push("toSettings")
+
 		uni.showActionSheet({
 			itemList: menuItems,
 			success: async (res) => {
@@ -161,6 +171,9 @@
 					case 'searchByImage':
 						// 以图搜图
 						searchByImage();
+						break;
+					case 'toSettings':
+						toSettings();
 						break;
 				}
 			},
