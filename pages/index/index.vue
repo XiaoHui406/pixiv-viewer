@@ -26,6 +26,8 @@
 	import { generateAdFilterScript } from '@/tools/adFilterScript.ts'
 	import { longPressScript } from '@/tools/longPressScript.js'
 	import { urlUpdateScript } from '@/tools/urlUpdateScript.js'
+	import { artworkClickScript } from '@/tools/artworkClickScript.js'
+	import { addBrowsingHistory } from '@/tools/browsingHistory.ts'
 	import { STORAGE_KEY, AdBlockSettings } from '@/types/adblock.ts'
 
 	// Pixiv网站地址
@@ -184,7 +186,7 @@
 					case 'toSettings':
 						toSettings();
 						break;
-					case 'toBrowsingHistory':
+					case 'browsingHistory':
 						toBrowsingHistory()
 						break;
 				}
@@ -398,6 +400,21 @@
 	}
 
 	onMounted(() => {
+		// 检查是否有从浏览记录页面传递过来的目标URL
+		const targetUrl = uni.getStorageSync('target_artwork_url');
+		const targetId = uni.getStorageSync('target_artwork_id');
+
+		if (targetUrl && targetId) {
+			// 清除存储的目标URL
+			uni.removeStorageSync('target_artwork_url');
+			uni.removeStorageSync('target_artwork_id');
+
+			// 延迟加载目标URL，确保webview已就绪
+			setTimeout(() => {
+				loadUrlWithWebviewAPI(targetUrl);
+			}, 500);
+		}
+
 		// 获取当前web-view
 		const pages = getCurrentPages()
 		const currentPage = pages[pages.length - 1]
@@ -440,6 +457,8 @@
 						match: 'pixiv-down://.*' // 只拦截特定协议
 					}, (e : any) => {
 						const rawUrl = e.url;
+
+						// 处理 URL 更新
 						if (rawUrl.includes('pixiv-down://update-url')) {
 							const urlParam = 'url=';
 							const index = rawUrl.indexOf(urlParam);
@@ -449,6 +468,27 @@
 								console.log("App 已同步最新 URL:", newUrl);
 							}
 							return; // 拦截并结束，不执行后续逻辑
+						}
+
+						// 处理作品点击 - 保存浏览记录
+						if (rawUrl.includes('pixiv-down://artwork-click')) {
+							try {
+								const urlMatch = rawUrl.match(/[?&]url=([^&]+)/);
+								const imgMatch = rawUrl.match(/[?&]img=([^&]+)/);
+
+								if (urlMatch && imgMatch) {
+									const artworkUrl = decodeURIComponent(urlMatch[1]);
+									const imageUrl = decodeURIComponent(imgMatch[1]);
+
+									console.log('作品点击:', artworkUrl, imageUrl);
+
+									// 保存浏览记录
+									addBrowsingHistory(artworkUrl, imageUrl);
+								}
+							} catch (err) {
+								console.error('处理作品点击失败:', err);
+							}
+							return;
 						}
 
 						// e.url 就是我们在 JS 里 window.location.href 设置的值
@@ -493,7 +533,8 @@
 							const combinedScript : string = [
 								adFilterScript,
 								longPressScript,
-								urlUpdateScript
+								urlUpdateScript,
+								artworkClickScript
 							].join("")
 							webview.evalJS(combinedScript)
 						} catch (e) {
