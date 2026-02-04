@@ -1,5 +1,14 @@
 <template>
 	<view class="container">
+		<!-- 顶部导航栏 -->
+		<view class="nav-bar">
+			<text class="nav-title">浏览记录</text>
+			<view class="nav-clear" @click="clearHistory" v-if="historyList.length > 0">
+				<text class="clear-text">清空</text>
+			</view>
+			<view class="nav-clear" v-else></view>
+		</view>
+
 		<!-- 浏览记录列表 -->
 		<scroll-view class="history-list" scroll-y>
 			<view v-if="historyList.length === 0" class="empty-state">
@@ -134,10 +143,39 @@
 		background-color: #f5f5f5;
 	}
 
+	.nav-bar {
+		height: 44px;
+		background-color: #fff;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0 15px;
+		border-bottom: 1px solid #e8e8e8;
+		margin-top: var(--status-bar-height);
+	}
+
+	.nav-title {
+		font-size: 17px;
+		font-weight: 600;
+		color: #333;
+	}
+
+	.nav-clear {
+		width: 50px;
+		height: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+	}
+
+	.clear-text {
+		font-size: 14px;
+		color: #ff6b6b;
+	}
+
 	.history-list {
 		flex: 1;
-		height: 100vh;
-		padding-top: var(--status-bar-height);
+		height: calc(100vh - 44px - var(--status-bar-height));
 	}
 
 	.empty-state {
@@ -161,9 +199,9 @@
 	}
 
 	.history-item {
-		width: calc(33.33% - 7px);
+		width: calc(50% - 5px);
 		aspect-ratio: 1;
-		border-radius: 8px;
+		border-radius: 12px;
 		overflow: hidden;
 		position: relative;
 		background-color: #eee;

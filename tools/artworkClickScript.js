@@ -26,17 +26,27 @@ export const artworkClickScript = `(function() {
 			var artworkMatch = href.match(/\\/artworks\\/(\\d+)/);
 			
 			if (artworkMatch) {
-				// 找到链接中的图片
-				var imgElement = linkTarget.querySelector('img');
+				// 查找链接内的所有图片
+				var allImages = linkTarget.querySelectorAll('img');
 				var imgSrc = '';
 				
-				if (imgElement && imgElement.src) {
-					imgSrc = imgElement.src;
-				} else {
-					// 尝试从父元素查找图片
-					var parentImg = linkTarget.parentElement ? linkTarget.parentElement.querySelector('img') : null;
-					if (parentImg && parentImg.src) {
-						imgSrc = parentImg.src;
+				// 遍历所有图片，找到真正的缩略图（不是base64占位图）
+				for (var i = 0; i < allImages.length; i++) {
+					var img = allImages[i];
+					if (img.src && img.src.indexOf('i.pximg.net') !== -1) {
+						imgSrc = img.src;
+						break;
+					}
+				}
+				
+				// 如果没找到 pximg 图片，尝试其他图片（排除base64）
+				if (!imgSrc) {
+					for (var i = 0; i < allImages.length; i++) {
+						var img = allImages[i];
+						if (img.src && img.src.indexOf('data:image') !== 0) {
+							imgSrc = img.src;
+							break;
+						}
 					}
 				}
 				
@@ -47,4 +57,6 @@ export const artworkClickScript = `(function() {
 			}
 		}
 	}, true);
+	
+	console.log('Artwork click listener injected');
 })();`;
