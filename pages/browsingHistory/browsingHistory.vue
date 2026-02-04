@@ -16,15 +16,19 @@
 			</view>
 
 			<view v-else class="history-grid">
-				<view v-for="item in processedHistoryList" :key="item.id" class="history-item"
-					@click="openArtwork(item)" @longpress="deleteItem(item)">
-					<view v-if="!item.localPath" class="image-placeholder">
-						<text class="placeholder-text">加载中...</text>
-					</view>
-					<image v-else class="history-image" :src="item.localPath" mode="aspectFill" lazy-load></image>
-					<!-- 					<view class="history-overlay">
-						<text class="artwork-id">ID: {{ item.id }}</text>
-					</view> -->
+				<view 
+					v-for="item in historyList" 
+					:key="item.id" 
+					class="history-item" 
+					@click="openArtwork(item)"
+					@longpress="deleteItem(item)"
+				>
+					<image 
+						class="history-image" 
+						:src="item.localImagePath" 
+						mode="aspectFill" 
+						lazy-load
+					></image>
 				</view>
 			</view>
 		</scroll-view>
@@ -32,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-	import { ref, onMounted, computed } from 'vue';
+	import { ref, onMounted } from 'vue';
 	import {
 		getBrowsingHistory,
 		clearBrowsingHistory,
@@ -40,63 +44,23 @@
 		type BrowsingHistoryItem
 	} from '@/tools/browsingHistory.ts';
 
-	interface ProcessedHistoryItem extends BrowsingHistoryItem {
-		localPath ?: string;
-	}
-
 	const historyList = ref<BrowsingHistoryItem[]>([]);
-	const downloadedImages = ref<Map<string, string>>(new Map());
-
-	// 处理后的历史记录列表
-	const processedHistoryList = computed(() => {
-		return historyList.value.map(item => ({
-			...item,
-			localPath: downloadedImages.value.get(item.imageUrl)
-		}));
-	});
 
 	// 加载浏览记录
 	const loadHistory = () => {
 		historyList.value = getBrowsingHistory();
 		console.log('浏览记录:', historyList.value);
-		// 下载图片
-		downloadImages();
-	};
-
-	// 下载图片（带 Referer）
-	const downloadImages = async () => {
-		for (const item of historyList.value) {
-			if (downloadedImages.value.has(item.imageUrl)) {
-				continue; // 已经下载过
-			}
-
-			try {
-				const res = await uni.downloadFile({
-					url: item.imageUrl,
-					header: {
-						'Referer': 'https://www.pixiv.net'
-					}
-				});
-
-				if (res.statusCode === 200 && res.tempFilePath) {
-					downloadedImages.value.set(item.imageUrl, res.tempFilePath);
-				}
-			} catch (err) {
-				console.error('下载图片失败:', item.imageUrl, err);
-			}
-		}
 	};
 
 	// 清空浏览记录
-	const clearHistory = () => {
+	const clearHistory = async () => {
 		uni.showModal({
 			title: '确认清空',
 			content: '确定要清空所有浏览记录吗？',
-			success: (res) => {
+			success: async (res) => {
 				if (res.confirm) {
-					clearBrowsingHistory();
+					await clearBrowsingHistory();
 					historyList.value = [];
-					downloadedImages.value.clear();
 					uni.showToast({
 						title: '已清空',
 						icon: 'success'
@@ -107,25 +71,23 @@
 	};
 
 	// 打开作品详情
-	const openArtwork = (item : ProcessedHistoryItem) => {
-		// 返回首页并打开对应的作品页面
-
+	const openArtwork = (item: BrowsingHistoryItem) => {
 		// 使用事件或存储传递URL给index页面
 		uni.setStorageSync('target_artwork_url', item.url);
 		uni.setStorageSync('target_artwork_id', item.id);
 
 		uni.redirectTo({
 			url: "/pages/index/index"
-		})
+		});
 	};
 
 	// 长按删除单条记录
-	const deleteItem = (item : ProcessedHistoryItem) => {
+	const deleteItem = async (item: BrowsingHistoryItem) => {
 		uni.showActionSheet({
 			itemList: ['删除此记录'],
-			success: (res) => {
+			success: async (res) => {
 				if (res.tapIndex === 0) {
-					removeBrowsingHistory(item.id);
+					await removeBrowsingHistory(item.id);
 					loadHistory();
 				}
 			}
@@ -211,33 +173,5 @@
 	.history-image {
 		width: 100%;
 		height: 100%;
-	}
-
-	.image-placeholder {
-		width: 100%;
-		height: 100%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background-color: #ddd;
-	}
-
-	.placeholder-text {
-		font-size: 12px;
-		color: #999;
-	}
-
-	.history-overlay {
-		position: absolute;
-		bottom: 0;
-		left: 0;
-		right: 0;
-		background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
-		padding: 20px 8px 8px;
-	}
-
-	.artwork-id {
-		font-size: 12px;
-		color: #fff;
 	}
 </style>

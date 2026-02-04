@@ -482,7 +482,7 @@
 
 									console.log('作品点击:', artworkUrl, imageUrl);
 
-									// 保存浏览记录
+									// 保存浏览记录（异步）
 									addBrowsingHistory(artworkUrl, imageUrl);
 								}
 							} catch (err) {
