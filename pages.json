@@ -12,6 +12,12 @@
 			{
 				"navigationBarTitleText" : "设置"
 			}
+		},
+		{
+			"path": "pages/browsingHistory/browsingHistory",
+			"style": {
+				"navigationBarTitleText": "浏览记录"
+			}
 		}
 	],
 	"globalStyle": {

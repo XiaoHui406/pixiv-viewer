@@ -47,7 +47,7 @@
 	const isWebviewReady = ref(false) // webview初始化状态标志
 
 	// 处理图片长按菜单 - 添加防重复调用机制
-	let isMenuShowing = false; // 菜单显示状态标志
+	let isMenuShowing : boolean = false; // 菜单显示状态标志
 	const handleImageLongPress = (imageUrl : string) => {
 		console.log("handleImageLongPress");
 
@@ -119,9 +119,15 @@
 		return false;
 	}
 
-	const toSettings = () => {
+	const toSettings = () : void => {
 		uni.navigateTo({
 			url: "/pages/settings/settings"
+		})
+	}
+
+	const toBrowsingHistory = () => {
+		uni.navigateTo({
+			url: "/pages/browsingHistory/browsingHistory"
 		})
 	}
 
@@ -150,6 +156,9 @@
 		menuItems.push("设置")
 		menuActions.push("toSettings")
 
+		menuItems.push("浏览记录")
+		menuActions.push("browsingHistory")
+
 		uni.showActionSheet({
 			itemList: menuItems,
 			success: async (res) => {
@@ -174,6 +183,9 @@
 						break;
 					case 'toSettings':
 						toSettings();
+						break;
+					case 'toBrowsingHistory':
+						toBrowsingHistory()
 						break;
 				}
 			},
