@@ -96,7 +96,6 @@ export function generateAdFilterScript(settings : AdBlockSettings) : string {
         try {
             injectCSS();
         } catch (e) {
-            console.error('广告屏蔽脚本执行失败:', e);
         }
     })();
   `;

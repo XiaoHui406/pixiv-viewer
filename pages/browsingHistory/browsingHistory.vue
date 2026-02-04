@@ -109,13 +109,14 @@
 	// 打开作品详情
 	const openArtwork = (item : ProcessedHistoryItem) => {
 		// 返回首页并打开对应的作品页面
-		uni.switchTab({
-			url: '/pages/index/index'
-		});
 
 		// 使用事件或存储传递URL给index页面
 		uni.setStorageSync('target_artwork_url', item.url);
 		uni.setStorageSync('target_artwork_id', item.id);
+
+		uni.redirectTo({
+			url: "/pages/index/index"
+		})
 	};
 
 	// 长按删除单条记录

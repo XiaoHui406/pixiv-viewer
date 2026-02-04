@@ -57,6 +57,4 @@ export const artworkClickScript = `(function() {
 			}
 		}
 	}, true);
-	
-	console.log('Artwork click listener injected');
 })();`;
