@@ -133,6 +133,10 @@
 		})
 	}
 
+	const webviewRefresh = () => {
+		webview.reload(false)
+	}
+
 	// 切换菜单显示 - 使用uni.showActionSheet确保在app端可以正常显示
 	const toggleMenu = () => {
 		// 根据当前URL决定菜单选项
@@ -161,6 +165,9 @@
 		menuItems.push("浏览记录")
 		menuActions.push("browsingHistory")
 
+		menuItems.push("刷新")
+		menuActions.push("refresh")
+
 		uni.showActionSheet({
 			itemList: menuItems,
 			success: async (res) => {
@@ -188,6 +195,9 @@
 						break;
 					case 'browsingHistory':
 						toBrowsingHistory()
+						break;
+					case 'refresh':
+						webviewRefresh();
 						break;
 				}
 			},
