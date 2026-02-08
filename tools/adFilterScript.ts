@@ -26,7 +26,8 @@ const adRules = {
 
 	// 画师BOOTH推广规则
 	boothAds: [
-		'.user-booth-shop'
+		'.user-booth-shop',
+		'.booth-item'
 	]
 };
 
