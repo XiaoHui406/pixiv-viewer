@@ -41,14 +41,16 @@
 		getBrowsingHistory,
 		clearBrowsingHistory,
 		removeBrowsingHistory,
+		performAutoClean,
 		type BrowsingHistoryItem
 	} from '@/tools/browsingHistory.ts';
 
 	const historyList = ref<BrowsingHistoryItem[]>([]);
 
 	// 加载浏览记录
-	const loadHistory = () => {
-		historyList.value = getBrowsingHistory();
+	const loadHistory = async () => {
+		// 执行自动清理
+		historyList.value = await performAutoClean();
 		console.log('浏览记录:', historyList.value);
 	};
 

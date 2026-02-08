@@ -10,7 +10,8 @@
 					<text class="setting-label">基本广告屏蔽</text>
 					<text class="setting-desc">屏蔽页面中的基础广告内容</text>
 				</view>
-				<switch :checked="settings.basicAds" @change="handleSwitchChange('basicAds', $event)" color="#2196F3" />
+				<switch :checked="adSettings.basicAds" @change="handleAdSwitchChange('basicAds', $event)"
+					color="#2196F3" />
 			</view>
 
 			<!-- Pixiv高级会员相关 -->
@@ -19,7 +20,7 @@
 					<text class="setting-label">Pixiv高级会员推广</text>
 					<text class="setting-desc">屏蔽Pixiv Premium相关推广</text>
 				</view>
-				<switch :checked="settings.premiumAds" @change="handleSwitchChange('premiumAds', $event)"
+				<switch :checked="adSettings.premiumAds" @change="handleAdSwitchChange('premiumAds', $event)"
 					color="#2196F3" />
 			</view>
 
@@ -29,7 +30,54 @@
 					<text class="setting-label">画师BOOTH推广</text>
 					<text class="setting-desc">屏蔽画师BOOTH商店推广</text>
 				</view>
-				<switch :checked="settings.boothAds" @change="handleSwitchChange('boothAds', $event)" color="#2196F3" />
+				<switch :checked="adSettings.boothAds" @change="handleAdSwitchChange('boothAds', $event)"
+					color="#2196F3" />
+			</view>
+		</view>
+
+		<!-- 浏览记录设置卡片 -->
+		<view class="card">
+			<view class="card-title">浏览记录设置</view>
+
+			<!-- 自动清理开关 -->
+			<view class="setting-item">
+				<view class="setting-info">
+					<text class="setting-label">自动清理浏览记录</text>
+					<text class="setting-desc">当记录超过限制时自动删除旧记录</text>
+					<text class="setting-desc">每条记录大约会占用存储20KB</text>
+				</view>
+				<switch :checked="historySettings.enabled" @change="handleHistorySwitchChange('enabled', $event)"
+					color="#2196F3" />
+			</view>
+
+			<!-- 最大记录数量 -->
+			<view class="setting-item" v-if="historySettings.enabled">
+				<view class="setting-info">
+					<text class="setting-label">最大记录数量</text>
+					<text class="setting-desc">超过此数量将自动删除最早记录</text>
+				</view>
+				<picker mode="selector" :range="countOptions" :value="getCountIndex(historySettings.maxCount)"
+					@change="handleCountChange">
+					<view class="picker-value">
+						<text class="picker-text">{{ getCountLabel(historySettings.maxCount) }}</text>
+						<text class="picker-arrow">></text>
+					</view>
+				</picker>
+			</view>
+
+			<!-- 时间限制 -->
+			<view class="setting-item last-item" v-if="historySettings.enabled">
+				<view class="setting-info">
+					<text class="setting-label">时间限制</text>
+					<text class="setting-desc">删除超过指定时间的记录</text>
+				</view>
+				<picker mode="selector" :range="timeLimitLabels" :value="getTimeLimitIndex(historySettings.timeLimit)"
+					@change="handleTimeLimitChange">
+					<view class="picker-value">
+						<text class="picker-text">{{ getTimeLimitLabel(historySettings.timeLimit) }}</text>
+						<text class="picker-arrow">></text>
+					</view>
+				</picker>
 			</view>
 		</view>
 
@@ -46,21 +94,90 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted } from 'vue';
+	import { onMounted, computed } from 'vue';
 	import { useAdBlockSettings } from '../../composables/useAdBlockSettings';
+	import { useHistorySettings } from '../../composables/useHistorySettings';
 	import type { AdBlockSettings } from '../../types/adblock';
+	import { TIME_LIMIT_OPTIONS, type TimeLimitOption } from '../../types/historySettings';
 
-	const { settings, loadSettings, updateSetting, resetSettings } = useAdBlockSettings();
+	const { settings: adSettings, loadSettings: loadAdSettings, updateSetting: updateAdSetting, resetSettings: resetAdSettings } = useAdBlockSettings();
+	const { settings: historySettings, loadSettings: loadHistorySettings, updateSetting: updateHistorySetting, resetSettings: resetHistorySettings } = useHistorySettings();
+
+	// 数量选项
+	const countOptions = ['50条', '100条', '200条', '500条', '1000条', '2000条', '5000条', '10000条', '无限制'];
+	const countValues : (number | null)[] = [50, 100, 200, 500, 1000, 2000, 5000, 10000, null];
+
+	// 时间限制选项标签
+	const timeLimitLabels = computed(() => TIME_LIMIT_OPTIONS.map(opt => opt.label));
 
 	/**
-	 * 处理开关切换
+	 * 处理广告屏蔽开关切换
 	 */
-	const handleSwitchChange = <K extends keyof AdBlockSettings>(
+	const handleAdSwitchChange = <K extends keyof AdBlockSettings>(
 		key : K,
 		event : any
 	) : void => {
 		const value = event.detail.value;
-		updateSetting(key, value);
+		updateAdSetting(key, value);
+	};
+
+	/**
+	 * 处理浏览记录开关切换
+	 */
+	const handleHistorySwitchChange = <K extends keyof typeof historySettings.value>(
+		key : K,
+		event : any
+	) : void => {
+		const value = event.detail.value;
+		updateHistorySetting(key, value);
+	};
+
+	/**
+	 * 获取数量索引
+	 */
+	const getCountIndex = (value : number | null) : number => {
+		const index = countValues.indexOf(value);
+		return index >= 0 ? index : 1; // 默认100条
+	};
+
+	/**
+	 * 获取数量标签
+	 */
+	const getCountLabel = (value : number | null) : string => {
+		if (value === null) return '无限制';
+		return `${value}条`;
+	};
+
+	/**
+	 * 处理数量选择变化
+	 */
+	const handleCountChange = (event : any) : void => {
+		const index = event.detail.value;
+		updateHistorySetting('maxCount', countValues[index]);
+	};
+
+	/**
+	 * 获取时间限制索引
+	 */
+	const getTimeLimitIndex = (value : TimeLimitOption) : number => {
+		const index = TIME_LIMIT_OPTIONS.findIndex(opt => opt.value === value);
+		return index >= 0 ? index : 0;
+	};
+
+	/**
+	 * 获取时间限制标签
+	 */
+	const getTimeLimitLabel = (value : TimeLimitOption) : string => {
+		const option = TIME_LIMIT_OPTIONS.find(opt => opt.value === value);
+		return option?.label || '无限制';
+	};
+
+	/**
+	 * 处理时间限制选择变化
+	 */
+	const handleTimeLimitChange = (event : any) : void => {
+		const index = event.detail.value;
+		updateHistorySetting('timeLimit', TIME_LIMIT_OPTIONS[index].value);
 	};
 
 	/**
@@ -72,7 +189,8 @@
 			content: '确定要恢复默认设置吗？',
 			success: (res) => {
 				if (res.confirm) {
-					resetSettings();
+					resetAdSettings();
+					resetHistorySettings();
 					uni.showToast({
 						title: '已恢复默认设置',
 						icon: 'success'
@@ -84,7 +202,8 @@
 
 	// 页面加载时读取设置
 	onMounted(() => {
-		loadSettings();
+		loadAdSettings();
+		loadHistorySettings();
 	});
 </script>
 
@@ -138,6 +257,22 @@
 
 	.setting-desc {
 		font-size: 24rpx;
+		color: #999;
+	}
+
+	.picker-value {
+		display: flex;
+		align-items: center;
+		gap: 10rpx;
+	}
+
+	.picker-text {
+		font-size: 28rpx;
+		color: #666;
+	}
+
+	.picker-arrow {
+		font-size: 28rpx;
 		color: #999;
 	}
 
