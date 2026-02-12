@@ -22,9 +22,9 @@
 	import { ref, onMounted, watch, nextTick, WebViewHTMLAttributes } from 'vue'
 	import { onBackPress } from '@dcloudio/uni-app'
 	//下载图片
-	import { downloadImageToDirectory } from '@/tools/downloadImage.js'
+	import { downloadImageToDirectory } from '@/tools/downloadImage.ts'
 	//复制画师id/作品id
-	import { copyIdFromCurrentUrl } from '@/tools/copyId.js'
+	import { copyIdFromCurrentUrl } from '@/tools/copyId.ts'
 	//广告屏蔽
 	import { generateAdFilterScript } from '@/tools/adFilterScript.ts'
 	//长按检测

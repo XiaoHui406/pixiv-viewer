@@ -3,7 +3,10 @@
  * @param {string} url - Pixiv URL
  * @returns {Object} 包含类型和ID的对象
  */
-export function extractIdFromUrl(url) {
+export const extractIdFromUrl = (url : string) : {
+	type : string | null,
+	id : string | null
+} => {
 	console.log("copyid.js url=" + url);
 	if (!url || typeof url !== 'string') {
 		return {
@@ -14,7 +17,7 @@ export function extractIdFromUrl(url) {
 
 	try {
 		// 检查是否为作品页面
-		const artworkMatch = url.match(/\/artworks\/(\d+)/);
+		const artworkMatch : RegExpMatchArray = url.match(/\/artworks\/(\d+)/);
 		console.log('artworkMatch=' + artworkMatch);
 		if (artworkMatch) {
 			return {
@@ -24,7 +27,7 @@ export function extractIdFromUrl(url) {
 		}
 
 		// 检查是否为画师页面
-		const userMatch = url.match(/\/users\/(\d+)/);
+		const userMatch : RegExpMatchArray = url.match(/\/users\/(\d+)/);
 		console.log('userMatch=' + userMatch);
 		if (userMatch) {
 			return {
@@ -36,7 +39,7 @@ export function extractIdFromUrl(url) {
 		// 检查其他可能的URL格式
 		// 例如：/member_illust.php?mode=medium&illust_id=139731500
 		if (url.includes('member_illust.php')) {
-			const illustIdMatch = url.match(/[?&]illust_id=(\d+)/);
+			const illustIdMatch : RegExpMatchArray = url.match(/[?&]illust_id=(\d+)/);
 			if (illustIdMatch) {
 				return {
 					type: 'artwork',
@@ -47,7 +50,7 @@ export function extractIdFromUrl(url) {
 
 		// 例如：/member.php?id=3388329
 		if (url.includes('member.php')) {
-			const userIdMatch = url.match(/[?&]id=(\d+)/);
+			const userIdMatch : RegExpMatchArray = url.match(/[?&]id=(\d+)/);
 			if (userIdMatch) {
 				return {
 					type: 'user',
@@ -60,6 +63,7 @@ export function extractIdFromUrl(url) {
 			type: null,
 			id: null
 		};
+
 	} catch (error) {
 		console.error('解析URL失败:', error);
 		return {
@@ -74,7 +78,7 @@ export function extractIdFromUrl(url) {
  * @param {string} text - 要复制的文本
  * @returns {Promise<boolean>} 是否复制成功
  */
-export async function copyToClipboard(text) {
+export const copyToClipboard = async (text : string) : Promise<boolean> => {
 	if (!text) {
 		return false;
 	}
@@ -110,7 +114,7 @@ export async function copyToClipboard(text) {
  * @param {string} url - 当前URL
  * @returns {Promise<boolean>} 是否成功复制
  */
-export async function copyIdFromCurrentUrl(url) {
+export const copyIdFromCurrentUrl = async (url : string) : Promise<boolean> => {
 	const {
 		type,
 		id
@@ -130,11 +134,6 @@ export async function copyIdFromCurrentUrl(url) {
 	const success = await copyToClipboard(id);
 
 	if (success) {
-		// uni.showToast({
-		// 	title: `已复制${typeName}ID: ${id}`,
-		// 	icon: 'success',
-		// 	duration: 2000
-		// });
 		uni.showModal({
 			content: `已复制${typeName}ID: ${id} 至剪贴板`,
 			showCancel: false
