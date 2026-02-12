@@ -1,17 +1,28 @@
-import { ref } from 'vue';
-import type { HistorySettings } from '../types/historySettings';
+import { ref, type Ref } from 'vue';
+import type { HistorySettings, TimeLimitOption } from '../types/historySettings';
 import { defaultHistorySettings, HISTORY_SETTINGS_KEY } from '../types/historySettings';
 
 /**
  * 浏览记录设置管理
  */
-export function useHistorySettings() {
+export const useHistorySettings = () : {
+	settings : Ref<{
+		enabled : boolean;
+		maxCount : number;
+		timeLimit : TimeLimitOption;
+	}>;
+	loadSettings : () => void;
+	saveSettings : () => void;
+	updateSetting : <K extends keyof HistorySettings>(key : K, value : HistorySettings[K]) => void;
+	resetSettings : () => void;
+	getSettings : () => HistorySettings;
+} => {
 	const settings = ref<HistorySettings>({ ...defaultHistorySettings });
 
 	/**
 	 * 从本地存储加载设置
 	 */
-	const loadSettings = (): void => {
+	const loadSettings = () : void => {
 		try {
 			const stored = uni.getStorageSync(HISTORY_SETTINGS_KEY);
 			if (stored) {
@@ -25,7 +36,7 @@ export function useHistorySettings() {
 	/**
 	 * 保存设置到本地存储
 	 */
-	const saveSettings = (): void => {
+	const saveSettings = () : void => {
 		try {
 			uni.setStorageSync(HISTORY_SETTINGS_KEY, settings.value);
 		} catch (e) {
@@ -37,9 +48,9 @@ export function useHistorySettings() {
 	 * 更新单个设置项
 	 */
 	const updateSetting = <K extends keyof HistorySettings>(
-		key: K,
-		value: HistorySettings[K]
-	): void => {
+		key : K,
+		value : HistorySettings[K]
+	) : void => {
 		settings.value[key] = value;
 		saveSettings();
 	};
@@ -47,7 +58,7 @@ export function useHistorySettings() {
 	/**
 	 * 重置为默认设置
 	 */
-	const resetSettings = (): void => {
+	const resetSettings = () : void => {
 		settings.value = { ...defaultHistorySettings };
 		saveSettings();
 	};
@@ -55,7 +66,7 @@ export function useHistorySettings() {
 	/**
 	 * 获取设置（用于非组件场景）
 	 */
-	const getSettings = (): HistorySettings => {
+	const getSettings = () : HistorySettings => {
 		try {
 			const stored = uni.getStorageSync(HISTORY_SETTINGS_KEY);
 			if (stored) {

@@ -42,4 +42,4 @@ export const defaultHistorySettings : HistorySettings = {
 /**
  * 本地存储键名
  */
-export const HISTORY_SETTINGS_KEY = 'history_settings';
+export const HISTORY_SETTINGS_KEY : string = 'history_settings';

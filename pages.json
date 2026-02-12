@@ -17,6 +17,12 @@
 			"style": {
 				"navigationStyle": "custom"
 			}
+		},
+		{
+			"path": "pages/aboutApp/aboutApp",
+			"style": {
+				"navigationBarTitleText": "关于应用"
+			}
 		}
 	],
 	"globalStyle": {

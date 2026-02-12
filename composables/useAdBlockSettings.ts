@@ -1,11 +1,21 @@
-import { ref } from 'vue';
+import { ref, type Ref } from 'vue';
 import type { AdBlockSettings } from '../types/adblock';
 import { defaultAdBlockSettings, STORAGE_KEY } from '../types/adblock';
 
 /**
  * 广告屏蔽设置管理
  */
-export function useAdBlockSettings() {
+export const useAdBlockSettings = () : {
+	settings : Ref<{
+		basicAds : boolean;
+		premiumAds : boolean;
+		boothAds : boolean;
+	}>;
+	loadSettings : () => void;
+	saveSettings : () => void;
+	updateSetting : <K extends keyof AdBlockSettings>(key : K, value : AdBlockSettings[K]) => void;
+	resetSettings : () => void;
+} => {
 	const settings = ref<AdBlockSettings>({ ...defaultAdBlockSettings });
 
 	/**

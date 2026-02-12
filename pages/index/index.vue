@@ -21,14 +21,24 @@
 <script setup lang="ts">
 	import { ref, onMounted, watch, nextTick, WebViewHTMLAttributes } from 'vue'
 	import { onBackPress } from '@dcloudio/uni-app'
+	//下载图片
 	import { downloadImageToDirectory } from '@/tools/downloadImage.js'
+	//复制画师id/作品id
 	import { copyIdFromCurrentUrl } from '@/tools/copyId.js'
+	//广告屏蔽
 	import { generateAdFilterScript } from '@/tools/adFilterScript.ts'
+	//长按检测
 	import { longPressScript } from '@/tools/longPressScript.js'
+	//url更新检测
 	import { urlUpdateScript } from '@/tools/urlUpdateScript.js'
+	//长按图片检测（用于下载图片）
 	import { artworkClickScript } from '@/tools/artworkClickScript.js'
+	//浏览记录相关
 	import { addBrowsingHistory } from '@/tools/browsingHistory.ts'
+	//广告屏蔽设置相关
 	import { STORAGE_KEY, AdBlockSettings } from '@/types/adblock.ts'
+	//路由
+	import { toSettings, toBrowsingHistory } from '@/pages/router.ts'
 
 	// Pixiv网站地址
 	const pixivUrl = ref('https://www.pixiv.net/')
@@ -50,7 +60,7 @@
 
 	// 处理图片长按菜单 - 添加防重复调用机制
 	let isMenuShowing : boolean = false; // 菜单显示状态标志
-	const handleImageLongPress = (imageUrl : string) => {
+	const handleImageLongPress = (imageUrl : string) : void => {
 		console.log("handleImageLongPress");
 
 		// 防重复调用：如果菜单已经在显示，直接返回
@@ -100,7 +110,7 @@
 	}
 
 	// 检查当前URL是否可以复制ID
-	const canCopyId = (url : string) => {
+	const canCopyId = (url : string) : boolean => {
 		if (!url) return false;
 
 		// 检查是否为作品页面
@@ -121,24 +131,12 @@
 		return false;
 	}
 
-	const toSettings = () : void => {
-		uni.navigateTo({
-			url: "/pages/settings/settings"
-		})
-	}
-
-	const toBrowsingHistory = () => {
-		uni.navigateTo({
-			url: "/pages/browsingHistory/browsingHistory"
-		})
-	}
-
-	const webviewRefresh = () => {
+	const webviewRefresh = () : void => {
 		webview.reload(false)
 	}
 
 	// 切换菜单显示 - 使用uni.showActionSheet确保在app端可以正常显示
-	const toggleMenu = () => {
+	const toggleMenu = () : void => {
 		// 根据当前URL决定菜单选项
 		const menuItems = [];
 		const menuActions = [];
@@ -151,11 +149,9 @@
 			menuActions.push('copyId');
 		}
 
-		// 添加原有的查找功能
 		menuItems.push('查找作品', '查找画师');
 		menuActions.push('findArtwork', 'findUser');
 
-		// 添加以图搜图功能
 		menuItems.push('以图搜图');
 		menuActions.push('searchByImage');
 
@@ -164,6 +160,9 @@
 
 		menuItems.push("浏览记录")
 		menuActions.push("browsingHistory")
+
+		menuItems.push("关于应用")
+		menuActions.push("aboutApp")
 
 		menuItems.push("刷新")
 		menuActions.push("refresh")
@@ -208,7 +207,7 @@
 	}
 
 	// 显示作品ID输入框
-	const showArtworkInput = () => {
+	const showArtworkInput = () : void => {
 		inputType.value = 'artwork'
 		uni.showModal({
 			title: '查找作品',
@@ -252,7 +251,7 @@
 	}
 
 	// 以图搜图功能 - 使用通用的webview API加载函数
-	const searchByImage = async () => {
+	const searchByImage = async () : Promise<void> => {
 		console.log('searchByImage called')
 		const newUrl = 'https://ascii2d.net/'
 		await loadUrlWithWebviewAPI(newUrl)
@@ -296,7 +295,7 @@
 	}
 
 	// 通用的webview API加载URL函数
-	const loadUrlWithWebviewAPI = async (url : string) => {
+	const loadUrlWithWebviewAPI = async (url : string) : Promise<void> => {
 		console.log('loadUrlWithWebviewAPI called with URL:', url)
 
 		try {
@@ -398,7 +397,7 @@
 	}
 
 	// 回退到Vue响应式更新的方法
-	const fallbackToVueUpdate = () => {
+	const fallbackToVueUpdate = () : void => {
 		console.log('Falling back to Vue reactive update')
 		const newUrl = 'https://ascii2d.net/'
 		pixivUrl.value = newUrl
@@ -548,7 +547,7 @@
 							].join("")
 							webview.evalJS(combinedScript)
 						} catch (e) {
-							console.error('Failed to inject ad filter:', e);
+							console.error('Failed to inject:', e);
 						}
 					});
 

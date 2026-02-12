@@ -23,4 +23,4 @@ export const defaultAdBlockSettings : AdBlockSettings = {
 /**
  * 本地存储键名
  */
-export const STORAGE_KEY = 'adblock_settings';
+export const STORAGE_KEY : string = 'adblock_settings';
