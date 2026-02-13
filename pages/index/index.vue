@@ -38,7 +38,7 @@
 	//广告屏蔽设置相关
 	import { STORAGE_KEY, AdBlockSettings } from '@/types/adblock.ts'
 	//路由
-	import { toSettings, toBrowsingHistory } from '@/pages/router.ts'
+	import { toSettings, toBrowsingHistory, toAboutApp } from '@/pages/router.ts'
 
 	// Pixiv网站地址
 	const pixivUrl = ref('https://www.pixiv.net/')
@@ -194,6 +194,9 @@
 						break;
 					case 'browsingHistory':
 						toBrowsingHistory()
+						break;
+					case 'aboutApp':
+						toAboutApp()
 						break;
 					case 'refresh':
 						webviewRefresh();

@@ -9,3 +9,9 @@ export const toBrowsingHistory = () : void => {
 		url: "/pages/browsingHistory/browsingHistory"
 	})
 }
+
+export const toAboutApp = () : void => {
+	uni.navigateTo({
+		url: "/pages/aboutApp/aboutApp"
+	})
+}
