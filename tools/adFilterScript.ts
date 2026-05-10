@@ -16,7 +16,8 @@ const adRules = {
 		'.t_relatedworks',
 		'.t_header',
 		'.sc-1m9m9n-0',
-		'.ads'
+		'.ads',
+		'.banner'
 	],
 
 	// Pixiv高级会员推广规则
