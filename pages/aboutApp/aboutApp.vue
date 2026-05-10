@@ -103,6 +103,23 @@
 	const isChecking = ref(false);
 
 	/**
+	 * 比较两个语义化版本号
+	 * @returns 1 若 a > b, -1 若 a < b, 0 若相等
+	 */
+	const compareVersion = (a: string, b: string): number => {
+		const partsA = a.split('.').map(Number)
+		const partsB = b.split('.').map(Number)
+		const len = Math.max(partsA.length, partsB.length)
+		for (let i = 0; i < len; i++) {
+			const numA = partsA[i] || 0
+			const numB = partsB[i] || 0
+			if (numA > numB) return 1
+			if (numA < numB) return -1
+		}
+		return 0
+	}
+
+	/**
 	 * 检查更新
 	 */
 	const checkUpdate = async () : Promise<void> => {
@@ -111,22 +128,23 @@
 		isChecking.value = true;
 
 		try {
-			// TODO: 实现实际的版本检查逻辑
-			// 这里模拟检查过程
 			const response = await uni.request({
 				url: 'https://api.github.com/repos/XiaoHui406/pixiv-viewer/releases/latest'
 			})
-			let latestVersion : string = response.data['tag_name']
-			// 去除最前面的“v”
-			latestVersion = latestVersion.substring(1)
-			// 如果是x.x而不是x.x.x，在最后插入.0变为x.x.0
-			// 我错了，我不应该图省事把x.x.0写成x.x的 
+			const tagName : string | undefined = response.data?.['tag_name']
+			if (!tagName) {
+				uni.showToast({ title: '获取版本信息失败', icon: 'none' });
+				return;
+			}
+			// 安全去除前导 v/V
+			let latestVersion : string = tagName.replace(/^[vV]/, '')
+			// 如果是x.x格式，补全为x.x.0
 			if (latestVersion.split('.').length === 2) {
 				latestVersion += '.0'
 			}
-			console.log(latestVersion);
+			console.log('latestVersion:', latestVersion);
 
-			if (currentVersion.value === latestVersion) {
+			if (compareVersion(currentVersion.value, latestVersion) >= 0) {
 				uni.showModal({
 					title: '版本检查',
 					content: '当前已是最新版本',
@@ -137,19 +155,25 @@
 			else {
 				const choice = await uni.showModal({
 					title: '版本检查',
-					content: `检查到最新版本：${latestVersion}, 是否更新？`,
+					content: `检查到最新版本：${latestVersion}，是否更新？`,
 					showCancel: true,
 					confirmText: '确定'
 				})
 				if (choice.confirm) {
-					const downloadUrl : string = response.data['assets'][0]['browser_download_url']
-					const downloadCallback = await uni.downloadFile(downloadUrl)
-					const filePath = downloadCallback.filePath
+					const assets = response.data?.['assets']
+					if (!assets || assets.length === 0) {
+						uni.showToast({ title: '暂无可用安装包', icon: 'none' });
+						return;
+					}
+					const downloadUrl : string = assets[0]['browser_download_url']
+					const downloadCallback = await uni.downloadFile({ url: downloadUrl })
+					const filePath = downloadCallback.tempFilePath
 					plus.runtime.install(filePath)
 				}
 			}
 
 		} catch (error) {
+			console.error('checkUpdate error:', error);
 			uni.showToast({
 				title: '检查失败，请稍后重试',
 				icon: 'none'
