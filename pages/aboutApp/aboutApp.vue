@@ -93,8 +93,11 @@
 <script setup lang="ts">
 	import { ref } from 'vue';
 
-	// 当前版本号（从manifest.json读取）
-	const currentVersion = ref('1.5.0');
+	// 当前版本号
+	const currentVersion = ref('')
+	plus.runtime.getProperty(plus.runtime.appid, (info) => {
+		currentVersion.value = info.version
+	})
 
 	// 检查更新状态
 	const isChecking = ref(false);
@@ -110,15 +113,42 @@
 		try {
 			// TODO: 实现实际的版本检查逻辑
 			// 这里模拟检查过程
-			await new Promise(resolve => setTimeout(resolve, 1500));
+			const response = await uni.request({
+				url: 'https://api.github.com/repos/XiaoHui406/pixiv-viewer/releases/latest'
+			})
+			let latestVersion : string = response.data['tag_name']
+			// 去除最前面的“v”
+			latestVersion = latestVersion.substring(1)
+			// 如果是x.x而不是x.x.x，在最后插入.0变为x.x.0
+			// 我错了，我不应该图省事把x.x.0写成x.x的 
+			if (latestVersion.split('.').length === 2) {
+				latestVersion += '.0'
+			}
+			console.log(latestVersion);
 
-			// 模拟结果：当前已是最新版本
-			uni.showModal({
-				title: '版本检查',
-				content: '当前已是最新版本',
-				showCancel: false,
-				confirmText: '确定'
-			});
+			if (currentVersion.value === latestVersion) {
+				uni.showModal({
+					title: '版本检查',
+					content: '当前已是最新版本',
+					showCancel: false,
+					confirmText: '确定'
+				});
+			}
+			else {
+				const choice = await uni.showModal({
+					title: '版本检查',
+					content: `检查到最新版本：${latestVersion}, 是否更新？`,
+					showCancel: true,
+					confirmText: '确定'
+				})
+				if (choice.confirm) {
+					const downloadUrl : string = response.data['assets'][0]['browser_download_url']
+					const downloadCallback = await uni.downloadFile(downloadUrl)
+					const filePath = downloadCallback.filePath
+					plus.runtime.install(filePath)
+				}
+			}
+
 		} catch (error) {
 			uni.showToast({
 				title: '检查失败，请稍后重试',
